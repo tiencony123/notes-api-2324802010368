@@ -1,0 +1,25 @@
+{
+  "name": "notes-api-2324802010368",
+  "version": "1.0.0",
+  "description": "Assignment 1 - Cloud Computing Practice",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiencony123/notes-api-2324802010368.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/tiencony123/notes-api-2324802010368/issues"
+  },
+  "homepage": "https://github.com/tiencony123/notes-api-2324802010368#readme",
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
