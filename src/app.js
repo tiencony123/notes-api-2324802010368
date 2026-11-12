@@ -12,6 +12,8 @@ app.get('/', (req, res) => {
     student_id: '2324802010368',
     host: os.hostname(),
     platform: os.platform(),
+    cpus: os.cpus().length,
+    memoryGB: (os.totalmem() / (1024 ** 3)).toFixed(2),
     uptime: os.uptime()
   });
 });

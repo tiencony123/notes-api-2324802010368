@@ -2,13 +2,18 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Báo cáo Bài 1 - Cloud Computing</title>
+  <title>Báo cáo Thực hành - Cloud Computing</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-    h1, h2 { color: #2c3e50; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; color: #333; }
+    h1, h2, h3 { color: #2c3e50; }
+    hr { border: 0; border-top: 2px solid #eee; margin: 40px 0; }
+    table { border-collapse: collapse; width: 100%; margin: 20px 0; }
     th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
     th { background-color: #f2f2f2; }
+    pre { background-color: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    code { font-family: Consolas, Monaco, monospace; }
+    .qa-item { margin-bottom: 18px; }
+    .qa-question { font-weight: bold; color: #1a5276; }
   </style>
 </head>
 <body>
@@ -33,5 +38,106 @@
       <td>Đồng nhất trong Docker Container</td>
     </tr>
   </table>
+
+  <hr>
+
+  <h1>Báo cáo Bài tập 2: Ảo hóa, Container và Mô phỏng Trung tâm dữ liệu</h1>
+  <p><strong>Họ và tên / MSSV:</strong> 2324802010368</p>
+
+  <h2>1. Liên kết Package trên GitHub Container Registry (GHCR)</h2>
+  <ul>
+    <li><strong>Image URL:</strong> <code>ghcr.io/tiencony123/notes-api:1.0</code></li>
+    <li><strong>Trang Package công khai:</strong> <a href="https://github.com/tiencony123?tab=packages" target="_blank">https://github.com/tiencony123?tab=packages</a></li>
+  </ul>
+
+  <h2>2. Nội dung tệp Dockerfile</h2>
+  <pre><code>FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY src ./src
+ENV PORT=3000
+EXPOSE 3000
+USER node
+CMD ["node", "src/server.js"]</code></pre>
+
+  <h2>3. Bảng số liệu Phần A: Thực nghiệm Docker Container</h2>
+  <table>
+    <tr>
+      <th>Đối tượng kiểm tra</th>
+      <th>Thông số ghi nhận</th>
+      <th>Ghi chú / Nhận xét</th>
+    </tr>
+    <tr>
+      <td>Kích thước Image (<code>notes-api:1.0</code>)</td>
+      <td>251 MB</td>
+      <td>Đóng gói tối giản trên nền <code>node:22-alpine</code></td>
+    </tr>
+    <tr>
+      <td>Container <code>notes1</code> (Mặc định)</td>
+      <td>Chạy cổng 3000, không giới hạn RAM riêng</td>
+      <td>API <code>/info</code> trả về tổng RAM của máy chủ host</td>
+    </tr>
+    <tr>
+      <td>Container <code>notes2</code> (Giới hạn <code>--memory="128m"</code>)</td>
+      <td><code>MEM LIMIT = 128 MiB</code> trên <code>docker stats</code></td>
+      <td>Bị giới hạn bởi cgroups nhưng API vẫn đọc <code>memoryGB</code> theo RAM máy chủ</td>
+    </tr>
+    <tr>
+      <td>Kéo Image công khai từ GHCR</td>
+      <td>Thành công (<code>Status: Image is up to date / Downloaded</code>)</td>
+      <td>Chạy được độc lập mà không cần đăng nhập lại GHCR</td>
+    </tr>
+  </table>
+
+  <h2>4. Bảng số liệu Phần B: Mô phỏng Trung tâm dữ liệu (CloudSim Plus)</h2>
+  <table>
+    <tr>
+      <th>Lần</th>
+      <th>Thay đổi</th>
+      <th>Thời điểm hoàn thành cloudlet cuối (giây mô phỏng)</th>
+      <th>Giải thích kết quả</th>
+    </tr>
+    <tr>
+      <td><strong>0</strong></td>
+      <td>Giữ nguyên (<code>VMS = 2</code>, <code>CLOUDLETS = 4</code>, <code>TimeShared</code>)</td>
+      <td><strong>20.1</strong></td>
+      <td>Host 0 có 8 lõi chứa vừa đủ 2 VM (4 lõi/VM). 4 Cloudlet (2 lõi/Cloudlet) chia đều cho 2 VM chạy song song từ 0.1s đến 20.1s.</td>
+    </tr>
+    <tr>
+      <td><strong>1</strong></td>
+      <td>Nhân đôi <code>VMS</code> (<code>VMS = 4</code>)</td>
+      <td><strong>45.6</strong></td>
+      <td>Host 0 chỉ có 8 lõi nên chỉ tạo được 2 VM; 2 VM còn lại bị từ chối do thiếu lõi. Broker chờ ~25.5s thử cấp phát lại trước khi chạy 4 Cloudlet trên 2 VM hiện có.</td>
+    </tr>
+    <tr>
+      <td><strong>2</strong></td>
+      <td>Nhân đôi <code>CLOUDLETS</code> (<code>CLOUDLETS = 8</code>)</td>
+      <td><strong>40.1</strong></td>
+      <td>2 VM (tổng 8 lõi) phải gánh 8 Cloudlet (tổng yêu cầu 16 lõi) theo cơ chế chia sẻ thời gian <code>TimeShared</code> nên thời gian hoàn thành tăng gấp đôi.</td>
+    </tr>
+    <tr>
+      <td><strong>3</strong></td>
+      <td>Đổi bộ lập lịch cloudlet sang <code>CloudletSchedulerSpaceShared</code></td>
+      <td><strong>20.1</strong></td>
+      <td>Với 2 Cloudlet/VM (tổng 4 lõi), tài nguyên vừa khớp 4 lõi của mỗi VM nên không có tác vụ phải xếp hàng đợi, hoàn thành cùng lúc tại 20.1s.</td>
+    </tr>
+  </table>
+
+  <h2>5. Trả lời Câu hỏi phản biện</h2>
+  <div class="qa-item">
+    <p class="qa-question">Câu 1: Vì sao API trong container <code>notes2</code> vẫn báo <code>memoryGB</code> bằng RAM máy chủ dù đã giới hạn 128 MB? Ứng dụng Java hoặc Node.js chạy trong container cần lưu ý gì về điều này?</p>
+    <p><strong>Trả lời:</strong> Container dùng chung nhân hệ điều hành (OS Kernel) với máy chủ nên các hàm hệ thống tiêu chuẩn (như <code>os.totalmem()</code> trong Node.js) đọc thông số trực tiếp từ tệp <code>/proc/meminfo</code> của máy chủ vật lý thay vì đọc giới hạn từ <strong>cgroups</strong>. Nếu không cấu hình giới hạn bộ nhớ ở tầng runtime, ứng dụng sẽ cấp phát vượt quá 128 MB và bị nhân Linux kích hoạt <strong>OOM Killer</strong> tiêu diệt container. Với Node.js cần giới hạn vùng nhớ V8 qua cờ <code>--max-old-space-size</code> (ví dụ <code>--max-old-space-size=96</code>); với Java (JVM) cần dùng phiên bản hỗ trợ container (<code>-XX:+UseContainerSupport</code>) và đặt ngưỡng <code>-XX:MaxRAMPercentage=75.0</code>.</p>
+  </div>
+
+  <div class="qa-item">
+    <p class="qa-question">Câu 2: Time-shared và space-shared khác nhau ra sao trong kết quả lần 3? Một nhà cung cấp đám mây hướng thị trường sẽ chọn chính sách nào cho gói giá rẻ, vì sao?</p>
+    <p><strong>Trả lời:</strong> Trong cấu hình Lần 3 (2 VM x 4 lõi, 4 Cloudlet x 2 lõi), số lõi yêu cầu vừa khớp số lõi hiện có nên cả hai chính sách đều hoàn thành ở <strong>20.1 giây</strong>. Tuy nhiên về cơ chế: <strong>Time-shared</strong> cho phép nhiều tác vụ chia sẻ thời gian sử dụng CPU đồng thời (chuyển đổi ngữ cảnh) khi số tác vụ vượt quá số lõi; còn <strong>Space-shared</strong> cấp phát độc quyền các lõi CPU cho tác vụ chạy đến khi xong, các tác vụ dư thừa phải nằm trong hàng đợi. Nhà cung cấp đám mây hướng thị trường sẽ chọn <strong>Time-shared</strong> cho gói giá rẻ vì người dùng gói này thường có tải không liên tục; chia sẻ CPU giúp nhồi nhiều máy ảo lên cùng một phần cứng vật lý (<em>oversubscription</em>), tối ưu hiệu suất khai thác và giảm giá thành.</p>
+  </div>
+
+  <div class="qa-item">
+    <p class="qa-question">Câu 3: Mô phỏng giúp ích gì trước khi thuê hạ tầng thật, và kết quả mô phỏng có thể sai lệch với thực tế ở điểm nào?</p>
+    <p><strong>Trả lời:</strong> Mô phỏng giúp kiểm thử kịch bản tải (capacity planning), phát hiện sớm các điểm nghẽn tài nguyên (như lỗi thiếu lõi CPU ở Lần 1) và so sánh thuật toán lập lịch mà không tốn chi phí thuê máy chủ thật hay làm gián đoạn hệ thống. Kết quả mô phỏng có thể sai lệch với thực tế do mô hình hóa lý tưởng các thông số (tốc độ CPU MIPS cố định, băng thông mạng ổn định), bỏ qua các yếu tố nhiễu thực tế như tranh chấp I/O đĩa cứng và bộ nhớ đệm giữa các máy ảo láng giềng (<em>noisy neighbor</em>), chi phí chuyển đổi ngữ cảnh của hệ điều hành, độ trễ khởi tạo tiến trình và biến động độ trễ mạng.</p>
+  </div>
 </body>
 </html>
