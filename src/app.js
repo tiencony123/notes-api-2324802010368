@@ -1,10 +1,9 @@
-const express = require('express');
 const os = require('os');
+const express = require('express');
+const notesRouter = require('./routes/notes');
 
 const app = express();
 app.use(express.json());
-
-let notes = [];
 
 // GET / - Thông tin máy chủ & MSSV
 app.get('/', (req, res) => {
@@ -18,25 +17,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// GET /api/notes - Lấy danh sách ghi chú
-app.get('/api/notes', (req, res) => {
-  res.json(notes);
-});
+app.use('/notes', notesRouter);
 
-// POST /api/notes - Thêm ghi chú mới
-app.post('/api/notes', (req, res) => {
-  const { title, content } = req.body;
-  if (!title || !content) {
-    return res.status(400).json({ error: 'Title and content are required' });
-  }
-  const newNote = {
-    id: notes.length + 1,
-    title,
-    content,
-    createdAt: new Date()
-  };
-  notes.push(newNote);
-  res.status(201).json(newNote);
+app.use((err, req, res, next) => {
+  console.error(err);
+  const clientError = ['ValidationError', 'CastError'].includes(err.name)
+    || err.code === 'LIMIT_FILE_SIZE';
+  res.status(clientError ? 400 : 500).json({ error: err.message });
 });
 
 module.exports = app;
